@@ -34,21 +34,9 @@ class Pattention(nn.Module):
         self.value_param_tokens = nn.Parameter(torch.empty(param_token_num, output_channels))
         self.normalization_type = normalization_type
 
-        # scale factor and attention bias are optional
-        self.register_buffer('scale', None)
-        self.register_buffer('attn_bias', None)
-
     def forward(self, inputs):
         # Compute attention weights using dot product between inputs and key parameters
         attn_weights = inputs @ self.key_param_tokens.transpose(-2, -1)
-
-        # Apply scale factor
-        scale_factor = math.sqrt(inputs.shape[-1])
-        attn_weights = attn_weights * scale_factor
-        
-        # Apply attention bias if present
-        if self.attn_bias is not None:
-            attn_weights = attn_weights + self.attn_bias.expand(attn_weights.shape)
 
         # Apply nonlinear normalization
         attn_weights = nonlinear_normalization(attn_weights, self.normalization_type)
@@ -62,9 +50,9 @@ class TokenFormerBlock(nn.Module):
     def __init__(self, hidden_size, qkv_slot_num, ffn_slot_num, proj_slot_num, config):
         super().__init__()
 
+        self.normalization_type = config['norm_activation_type']
         self.num_attention_heads = config['num_attention_heads']
         self.hidden_size_per_attention_head = hidden_size // self.num_attention_heads
-        self.normalization_type = config['norm_activation_type']
         
         # Get norm layers based on config
         norm, eps = get_norm(config)
