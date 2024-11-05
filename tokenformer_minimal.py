@@ -126,9 +126,6 @@ class TokenFormerBlock(nn.Module):
         k = k.transpose(1, 2)  # [b, nh, s, hs]
         v = v.transpose(1, 2)  # [b, nh, s, hs]
         
-        # Compute attention with proper scaling and normalization
-        scale = math.sqrt(self.hidden_size_per_attention_head)
-        
         # Create causal mask with proper dimensions
         causal_mask = torch.triu(
             torch.ones((1, 1, seq_len, seq_len), dtype=torch.bool, device=x.device), 
@@ -138,8 +135,9 @@ class TokenFormerBlock(nn.Module):
         mask_value = torch.tensor(-1e4)
         attn_mask = torch.where(causal_mask, mask_value, torch.zeros_like(mask_value))
         
-        # Compute attention scores
-        attn_weights = (q @ k.transpose(-2, -1)) / scale  # [b, nh, s, s]
+        # Compute attention scores with proper scaling and normalization
+        scale = 1 / math.sqrt(self.hidden_size_per_attention_head)
+        attn_weights = (q @ k.transpose(-2, -1)) * scale  # [b, nh, s, s]
         attn_weights = attn_weights + attn_mask
         attn_weights = nonlinear_normalization(attn_weights, self.normalization_type)
         
