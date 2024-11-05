@@ -85,9 +85,26 @@ class TokenFormerBlock(nn.Module):
         q = self.query(x)
         k = self.key(x)
         v = self.value(x)
+
+        # Compute self-attention
+        x = self.attention(q, k, v)
         
+        # Project and add residual connection
+        x = self.proj(x)
+        x = residual + x
+        
+        # FFN
+        residual = x
+        x = self.norm2(x)
+        x = self.ffn(x)
+        x = residual + x
+        
+        return x
+
+    def attention(self, q, k, v):
+
         # Reshape for attention heads
-        b, s, h = x.size()
+        b, s, h = q.size()
         q = q.view(b, s, self.num_attention_heads, self.hidden_size_per_attention_head)
         k = k.view(b, s, self.num_attention_heads, self.hidden_size_per_attention_head)
         v = v.view(b, s, self.num_attention_heads, self.hidden_size_per_attention_head)
@@ -106,16 +123,10 @@ class TokenFormerBlock(nn.Module):
         # q_rot, k_rot: [batch_size, seq_len, num_heads, rotary_ndims]
         # q_pass, k_pass: [batch_size, seq_len, num_heads, (head_size - rotary_ndims)]
 
-        # Get rotary embeddings
+        # Get and apply rotary embeddings
         seq_len = q.size(1)
         cos, sin = self.rotary_emb(q, seq_len=seq_len)
-        
-        # Apply rotary embeddings
-        q_rot, k_rot = apply_rotary_pos_emb(
-            q_rot, k_rot, 
-            cos, sin,
-            offset=0
-        )
+        q_rot, k_rot = apply_rotary_pos_emb(q_rot, k_rot, cos, sin, offset=0)
         
         # Recombine rotary and pass-through dimensions
         q = torch.cat((q_rot, q_pass), dim=-1)
@@ -128,7 +139,7 @@ class TokenFormerBlock(nn.Module):
         
         # Create causal mask with proper dimensions
         causal_mask = torch.triu(
-            torch.ones((1, 1, seq_len, seq_len), dtype=torch.bool, device=x.device), 
+            torch.ones((1, 1, seq_len, seq_len), dtype=torch.bool, device=q.device), 
             diagonal=1
         )
         # Always use -1e4 for masking future tokens
@@ -143,21 +154,11 @@ class TokenFormerBlock(nn.Module):
         
         # Apply attention to values
         x = attn_weights @ v  # [b, nh, s, hs]
-        
-        # Reshape and project
+
+        # Reshape and return
         x = x.transpose(1, 2).contiguous().view(b, s, h)
-        x = self.proj(x)
-        
-        # Add residual connection
-        x = residual + x
-        
-        # FFN
-        residual = x
-        x = self.norm2(x)
-        x = self.ffn(x)
-        x = residual + x
-        
         return x
+
 
 class TokenFormer(nn.Module):
     """TokenFormer model for inference"""
