@@ -9,12 +9,7 @@ import argparse
 import yaml
 
 def nonlinear_normalization(inputs, normalization_type, dim=-1):
-    if normalization_type == 'softmax': 
-        # NOTE: softmax = exp_l1_norm
-        nonlinear_outputs = torch.exp(inputs)
-        norm_outputs = nonlinear_outputs / torch.norm(nonlinear_outputs, p=1, dim=dim, keepdim=True) * inputs.shape[dim]
-        outputs = norm_outputs
-    elif normalization_type == 'gelu_l2_norm':
+    if normalization_type == 'gelu_l2_norm':
         nonlinear_outputs = F.gelu(inputs)
         norm_outputs = nonlinear_outputs / torch.norm(nonlinear_outputs, p=2, dim=dim, keepdim=True) * math.sqrt(nonlinear_outputs.shape[dim])
         outputs = norm_outputs
@@ -259,8 +254,7 @@ def load_config(config_path):
 
 
 def create_mapping(num_layers):
-    """Setup remapping rules for model loading"""
-    # Map prefixes only - will be used to replace at start of keys
+    # Create mapping for model weights
     remap_dict = {
         'sequential.0.word_embeddings': 'word_embeddings'
     }
@@ -280,16 +274,6 @@ def create_mapping(num_layers):
 def load_model(model, weights_path, num_layers):
     """Load model weights from state dict"""
     state_dict = torch.load(weights_path, weights_only=True)
-    
-    """
-    print("\nOriginal keys in loaded state dict:")
-    for key in sorted(state_dict.keys()):
-        print(f" {key} - size: {state_dict[key].size()}")
-
-    print("\nExpected keys in model:")
-    for key in sorted(model.state_dict().keys()):
-        print(f" {key} - size: {model.state_dict()[key].size()}")
-    """
     
     remap_dict = create_mapping(num_layers)
     
