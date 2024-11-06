@@ -2,6 +2,13 @@
 
 Minimal implementation of TokenFormer for inference and learning
 
+
+# Install
+
+```
+pip install -r requirements.txt
+```
+
 ## Running
 
 1. Download one of the models on the [original repo](https://github.com/Haiyang-W/TokenFormer?tab=readme-ov-file#-model-zoo)
