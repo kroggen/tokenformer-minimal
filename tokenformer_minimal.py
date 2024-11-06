@@ -142,15 +142,13 @@ class TokenFormerBlock(nn.Module):
             torch.ones((1, 1, seq_len, seq_len), dtype=torch.bool, device=q.device), 
             diagonal=1
         )
-        # Always use -1e4 for masking future tokens
-        mask_value = torch.tensor(-1e4)
-        attn_mask = torch.where(causal_mask, mask_value, torch.zeros_like(mask_value))
+        attn_mask = torch.where(causal_mask, float('-inf'), 0.0)
         
         # Compute attention scores with proper scaling and normalization
         scale = 1 / math.sqrt(self.hidden_size_per_attention_head)
         attn_weights = (q @ k.transpose(-2, -1)) * scale  # [b, nh, s, s]
         attn_weights = attn_weights + attn_mask
-        attn_weights = nonlinear_normalization(attn_weights, self.normalization_type)
+        attn_weights = F.softmax(attn_weights, dim=-1)
         
         # Apply attention to values
         x = attn_weights @ v  # [b, nh, s, hs]
