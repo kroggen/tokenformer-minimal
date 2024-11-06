@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from tinygrad.tensor import Tensor
 
 
 def get_norm(config):
@@ -8,7 +6,7 @@ def get_norm(config):
     if config['norm'] == "layernorm_nonparam":
         norm = LayerNorm_NonParam
     elif config['norm'] == "layernorm":
-        norm = nn.LayerNorm
+        norm = LayerNorm
     else:
         raise ValueError(f"norm {config['norm']} not recognized")
     return norm, eps
@@ -19,17 +17,30 @@ def get_final_norm(config):
     if config['final_norm'] == "layernorm_nonparam":
         norm = LayerNorm_NonParam
     elif config['final_norm'] == "layernorm":
-        norm = nn.LayerNorm
+        norm = LayerNorm
     else:
         raise ValueError(f"norm {config['final_norm']} not recognized")
     return norm, eps
 
 
-class LayerNorm_NonParam(nn.Module):
+class LayerNorm_NonParam:
     def __init__(self, dim, eps=1e-5):
-        super().__init__()
         self.num_channels = dim
         self.eps = eps
 
-    def forward(self, x):
-        return F.layer_norm(x, normalized_shape=(self.num_channels,), eps=self.eps)
+    def __call__(self, x):
+        mean = x.mean(axis=-1, keepdim=True)
+        variance = x.var(axis=-1, keepdim=True)
+        return (x - mean) / ((variance + self.eps) ** 0.5)
+
+
+class LayerNorm:
+    def __init__(self, dim, eps=1e-5):
+        self.weight = Tensor.ones(dim)
+        self.bias = Tensor.zeros(dim)
+        self.eps = eps
+
+    def __call__(self, x):
+        mean = x.mean(axis=-1, keepdim=True)
+        variance = x.var(axis=-1, keepdim=True)
+        return ((x - mean) / ((variance + self.eps) ** 0.5)) * self.weight + self.bias
