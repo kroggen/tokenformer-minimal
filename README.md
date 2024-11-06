@@ -2,6 +2,8 @@
 
 Minimal implementation of TokenFormer for inference and learning
 
+The `pytorch` version is on this branch. Check the `tinygrad` implementation [here](https://github.com/kroggen/tokenformer-minimal/tree/tinygrad)
+
 
 # Install
 
