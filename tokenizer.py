@@ -10,7 +10,7 @@ def build_tokenizer(tokenizer_type: str, vocab_file: str = None, padding_multipl
         tokenizer_type: Type of tokenizer to build
         vocab_file: Path to vocabulary file (required for HFTokenizer)
     """
-    print(f"> building {tokenizer_type} tokenizer ...", flush=True)
+    print(f"Building tokenizer...", flush=True)
 
     # Select and instantiate the tokenizer.
     if tokenizer_type.lower() == "HFTokenizer".lower():
@@ -28,17 +28,10 @@ def build_tokenizer(tokenizer_type: str, vocab_file: str = None, padding_multipl
 
 
 def _vocab_size_with_padding(orig_vocab_size, padding_multiple):
-    """Pad vocab size so it is divisible by model parallel size and
-    still having GPU friendly size."""
-
+    """Pad vocab size so it is divisible by padding_multiple."""
     after = orig_vocab_size
     while (after % padding_multiple) != 0:
         after += 1
-    print(
-        " > padded vocab (size: {}) with {} dummy tokens "
-        "(new size: {})".format(orig_vocab_size, after - orig_vocab_size, after),
-        flush=True,
-    )
     return after
 
 

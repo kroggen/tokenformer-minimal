@@ -215,8 +215,8 @@ def generate_text(model, tokenizer, prompt, max_length=20, temperature=0.0, top_
     # Encode the prompt
     input_ids = torch.tensor([tokenizer.tokenize(prompt)], device=device)
 
-    # print the token id
-    print(input_ids[0].tolist())
+    # Print the prompt without a newline
+    print(tokenizer.detokenize(input_ids[0].tolist()), end="", flush=True)
 
     with torch.no_grad():
         for _ in range(max_length):
@@ -239,8 +239,8 @@ def generate_text(model, tokenizer, prompt, max_length=20, temperature=0.0, top_
                 probs = F.softmax(next_token_logits, dim=-1)
                 next_token = torch.multinomial(probs, num_samples=1)
             
-            # print the token id
-            print(next_token[0].item())
+            # Print the token
+            print(tokenizer.detokenize(next_token[0].tolist()), end="", flush=True)
 
             # Append to input_ids
             input_ids = torch.cat([input_ids, next_token], dim=1)
@@ -249,6 +249,7 @@ def generate_text(model, tokenizer, prompt, max_length=20, temperature=0.0, top_
             if next_token[0].item() == tokenizer.eod_id:
                 break
     
+    print()
     return tokenizer.detokenize(input_ids[0].tolist())
 
 
@@ -342,11 +343,9 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     
-    
     print("Loading model weights...")
     load_model(model, args.model, config['num_layers'])
     
     # Generate text with the provided prompt
+    print("Generating text...")
     generated_text = generate_text(model, tokenizer, args.prompt)
-    print(f"Prompt: {args.prompt}")
-    print(f"Generated: {generated_text}")
